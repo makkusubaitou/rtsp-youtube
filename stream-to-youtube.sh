@@ -116,6 +116,7 @@ while true; do
         -c:a aac \
         -b:a "$AUDIO_BITRATE" \
         -ar 44100 \
+        -af "aresample=async=1:first_pts=0" \
         -f flv \
         "$OUTPUT_URL" 2>&1 | tee -a "$LOG_FILE" &
     
