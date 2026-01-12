@@ -1,0 +1,13 @@
+# Don't commit credentials
+config.env
+
+# Test files
+*.mp4
+*.jpg
+*.png
+
+# Logs
+*.log
+
+# macOS
+.DS_Store

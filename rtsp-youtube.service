@@ -1,0 +1,34 @@
+[Unit]
+Description=RTSP to YouTube Live Stream Relay
+Documentation=https://github.com/your-repo/rtsp-youtube
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+ExecStart=/usr/local/bin/stream-to-youtube.sh
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rtsp-youtube
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/log/rtsp-youtube
+
+# Resource limits (adjust based on your Pi model)
+# Pi 4: Can handle 1080p
+# Pi 3: Stick to 720p or lower
+# Pi Zero: May struggle, use 480p
+CPUQuota=80%
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target
