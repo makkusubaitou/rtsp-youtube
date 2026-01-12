@@ -113,10 +113,7 @@ while true; do
         -g $((FRAMERATE * 2)) \
         -keyint_min "$FRAMERATE" \
         -sc_threshold 0 \
-        -c:a aac \
-        -b:a "$AUDIO_BITRATE" \
-        -ar 44100 \
-        -af "aresample=async=1:first_pts=0" \
+        -an \
         -f flv \
         "$OUTPUT_URL" 2>&1 | tee -a "$LOG_FILE" &
     
