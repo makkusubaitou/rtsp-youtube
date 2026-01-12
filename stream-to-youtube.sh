@@ -108,7 +108,7 @@ while true; do
         -b:v "$VIDEO_BITRATE" \
         -maxrate "$VIDEO_BITRATE" \
         -bufsize "$(echo $VIDEO_BITRATE | sed 's/k//')k" \
-        -vf "scale=${RES_WIDTH}:${RES_HEIGHT}:force_original_aspect_ratio=decrease,pad=${RES_WIDTH}:${RES_HEIGHT}:(ow-iw)/2:(oh-ih)/2" \
+        -vf "crop=in_w-250:in_h-130:250:50,scale=${RES_WIDTH}:${RES_HEIGHT}" \
         -r "$FRAMERATE" \
         -g $((FRAMERATE * 2)) \
         -keyint_min "$FRAMERATE" \
