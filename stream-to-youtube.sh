@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# RTSP to YouTube Live Stream Relay
+# RTSP to Live Stream Relay (YouTube / Cloudflare)
 # For Raspberry Pi - Auto-starts on boot via systemd
 # =============================================================================
 
@@ -16,22 +16,44 @@ else
     exit 1
 fi
 
-# Validate required variables
-if [ -z "$RTSP_URL" ] || [ -z "$YOUTUBE_STREAM_KEY" ]; then
-    echo "Error: RTSP_URL and YOUTUBE_STREAM_KEY must be set in $CONFIG_FILE"
+# Validate RTSP URL
+if [ -z "$RTSP_URL" ]; then
+    echo "Error: RTSP_URL must be set in $CONFIG_FILE"
     exit 1
 fi
 
-# YouTube RTMP ingest URL
-YOUTUBE_RTMP_URL="rtmp://a.rtmp.youtube.com/live2/${YOUTUBE_STREAM_KEY}"
-
-# Default values if not set in config
+# Default values
+STREAM_PLATFORM="${STREAM_PLATFORM:-youtube}"
 VIDEO_BITRATE="${VIDEO_BITRATE:-2500k}"
 AUDIO_BITRATE="${AUDIO_BITRATE:-128k}"
 FRAMERATE="${FRAMERATE:-30}"
 RESOLUTION="${RESOLUTION:-1280x720}"
 RECONNECT_DELAY="${RECONNECT_DELAY:-5}"
 MAX_RETRIES="${MAX_RETRIES:-0}"  # 0 = infinite retries
+
+# Determine output URL based on platform
+case "$STREAM_PLATFORM" in
+    youtube)
+        if [ -z "$YOUTUBE_STREAM_KEY" ]; then
+            echo "Error: YOUTUBE_STREAM_KEY must be set for YouTube streaming"
+            exit 1
+        fi
+        OUTPUT_URL="rtmp://a.rtmp.youtube.com/live2/${YOUTUBE_STREAM_KEY}"
+        PLATFORM_NAME="YouTube"
+        ;;
+    cloudflare)
+        if [ -z "$CLOUDFLARE_STREAM_KEY" ]; then
+            echo "Error: CLOUDFLARE_STREAM_KEY must be set for Cloudflare streaming"
+            exit 1
+        fi
+        OUTPUT_URL="rtmps://live.cloudflare.com:443/live/${CLOUDFLARE_STREAM_KEY}"
+        PLATFORM_NAME="Cloudflare"
+        ;;
+    *)
+        echo "Error: Unknown STREAM_PLATFORM '$STREAM_PLATFORM'. Use 'youtube' or 'cloudflare'"
+        exit 1
+        ;;
+esac
 
 # Logging
 LOG_DIR="/var/log/rtsp-youtube"
@@ -51,9 +73,10 @@ cleanup() {
 trap cleanup SIGTERM SIGINT
 
 log "=========================================="
-log "Starting RTSP to YouTube Stream Relay"
+log "Starting RTSP to $PLATFORM_NAME Stream Relay"
 log "=========================================="
 log "RTSP Source: $RTSP_URL"
+log "Platform: $PLATFORM_NAME"
 log "Resolution: $RESOLUTION @ ${FRAMERATE}fps"
 log "Video Bitrate: $VIDEO_BITRATE"
 log "Audio Bitrate: $AUDIO_BITRATE"
@@ -64,13 +87,12 @@ retry_count=0
 while true; do
     log "Attempting to connect to RTSP stream..."
     
-    # FFmpeg command for RTSP to YouTube
+    # FFmpeg command for RTSP to RTMP/RTMPS
     # -rtsp_transport tcp: Use TCP for more reliable RTSP connection
-    # -re: Read input at native frame rate (important for live streaming)
-    # -c:v libx264: Re-encode video with H.264 (YouTube compatible)
+    # -c:v libx264: Re-encode video with H.264
     # -preset veryfast: Good balance of speed and quality for Pi
     # -tune zerolatency: Optimize for low-latency streaming
-    # -c:a aac: Re-encode audio to AAC (YouTube compatible)
+    # -c:a aac: Re-encode audio to AAC
     # -f flv: Output format for RTMP
     
     ffmpeg \
@@ -91,7 +113,7 @@ while true; do
         -b:a "$AUDIO_BITRATE" \
         -ar 44100 \
         -f flv \
-        "$YOUTUBE_RTMP_URL" 2>&1 | tee -a "$LOG_FILE" &
+        "$OUTPUT_URL" 2>&1 | tee -a "$LOG_FILE" &
     
     FFMPEG_PID=$!
     
