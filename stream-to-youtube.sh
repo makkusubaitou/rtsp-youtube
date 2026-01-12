@@ -31,6 +31,10 @@ RESOLUTION="${RESOLUTION:-1280x720}"
 RECONNECT_DELAY="${RECONNECT_DELAY:-5}"
 MAX_RETRIES="${MAX_RETRIES:-0}"  # 0 = infinite retries
 
+# Parse resolution into width and height
+RES_WIDTH="${RESOLUTION%x*}"
+RES_HEIGHT="${RESOLUTION#*x}"
+
 # Determine output URL based on platform
 case "$STREAM_PLATFORM" in
     youtube)
@@ -104,7 +108,7 @@ while true; do
         -b:v "$VIDEO_BITRATE" \
         -maxrate "$VIDEO_BITRATE" \
         -bufsize "$(echo $VIDEO_BITRATE | sed 's/k//')k" \
-        -vf "scale=$RESOLUTION:force_original_aspect_ratio=decrease,pad=$RESOLUTION:(ow-iw)/2:(oh-ih)/2" \
+        -vf "scale=${RES_WIDTH}:${RES_HEIGHT}:force_original_aspect_ratio=decrease,pad=${RES_WIDTH}:${RES_HEIGHT}:(ow-iw)/2:(oh-ih)/2" \
         -r "$FRAMERATE" \
         -g $((FRAMERATE * 2)) \
         -keyint_min "$FRAMERATE" \
